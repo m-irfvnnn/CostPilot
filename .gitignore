@@ -1,0 +1,123 @@
+# ============================================
+# Pre-CRM Engine — Root .gitignore
+# ============================================
+
+# ---------- Environment & Secrets ----------
+# Never commit real API keys, tokens, or secret endpoints.
+.env
+.env.*
+!.env.example
+.env.example.*
+.env.local
+.env.*.local
+.env.keys
+.env.production
+.env.staging
+.enc.local
+*.local
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ---------- Node.js / TypeScript ----------
+node_modules/
+dist/
+build/
+out/
+coverage/
+.next/
+.vercel/
+*.tsbuildinfo
+.eslintcache
+.npm/
+.pnpm-store/
+yarn-error.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---------- n8n ----------
+# Local n8n data & credentials (Docker volume is named n8n_data)
+n8n_data/
+.n8n/
+*.n8n.json
+*.n8n.credentials.json
+
+# ---------- Supabase ----------
+supabase/.branches
+supabase/.temp
+supabase/.temp/
+supabase/.env
+supabase/.env.local
+supabase/.env.*.local
+supabase/.env.keys
+Data/Supabase/**/.branches/
+Data/Supabase/**/.temp/
+Data/Supabase/**/.env
+Data/Supabase/**/.env.local
+Data/Supabase/**/.env.*.local
+Data/Supabase/**/.env.keys
+
+# ---------- Local Databases / Runtime State ----------
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.credentials.*
+credentials*.json
+secrets*.json
+Screenshot*.png
+
+# ---------- Hookdeck ----------
+.hookdeck/
+hookdeck-cli.json
+*.hookdeck.json
+
+# ---------- Logs ----------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---------- OS / Editor ----------
+.DS_Store
+**/.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/terminals.json
+
+# ---------- Testing ----------
+.nyc_output/
+.tmp/
+*.test.ts.snap
+*.spec.ts.snap
+
+# ---------- Misc ----------
+*.orig
+*.rej
+.cache/
+.tmp/
+temp/
+tmp/
+
+# ---------- Internal / AI Workspace ----------
+CODEX.md
+STATE.md
+TASK.md
+Docs/Development/.clinerules
+Product/Web_App/AGENTS.md
+Product/Web_App/CLAUDE.md

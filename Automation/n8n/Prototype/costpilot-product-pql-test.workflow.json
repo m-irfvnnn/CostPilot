@@ -1,0 +1,192 @@
+{
+  "id": "costpilot-product-pql-test",
+  "name": "CostPilot Product/PQL Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "costpilot-product-pql-test",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000011",
+      "name": "Product/PQL Test Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 520],
+      "webhookId": "costpilot-product-pql-test"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "ctx1", "name": "account_id", "value": "={{ $json.body?.account_id || $json.account_id || $env.COSTPILOT_PRODUCT_TEST_ACCOUNT_ID || '' }}", "type": "string" },
+            { "id": "ctx2", "name": "workspace_id", "value": "={{ $json.body?.workspace_id || $json.workspace_id || $json.body?.account_id || $json.account_id || $env.COSTPILOT_PRODUCT_TEST_WORKSPACE_ID || $env.COSTPILOT_PRODUCT_TEST_ACCOUNT_ID || '' }}", "type": "string" },
+            { "id": "ctx15", "name": "account_slug", "value": "={{ $json.body?.account_slug || $json.account_slug || $env.COSTPILOT_PRODUCT_TEST_ACCOUNT_SLUG || '' }}", "type": "string" },
+            { "id": "ctx3", "name": "workflow_id", "value": "costpilot-product-pql-test", "type": "string" },
+            { "id": "ctx4", "name": "workflow_name", "value": "CostPilot Product/PQL Test", "type": "string" },
+            { "id": "ctx5", "name": "execution_id", "value": "={{ $execution.id || 'manual' }}", "type": "string" },
+            { "id": "ctx6", "name": "node_id", "value": "gemini-product-test", "type": "string" },
+            { "id": "ctx7", "name": "node_name", "value": "Gemini Product Usage", "type": "string" },
+            { "id": "ctx8", "name": "provider", "value": "gemini", "type": "string" },
+            { "id": "ctx9", "name": "service_name", "value": "generative-language", "type": "string" },
+            { "id": "ctx10", "name": "model_name", "value": "={{ $env.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}", "type": "string" },
+            { "id": "ctx11", "name": "environment", "value": "local", "type": "string" },
+            { "id": "ctx12", "name": "business_action", "value": "product_usage_test", "type": "string" },
+            { "id": "ctx13", "name": "started_at", "value": "={{ $now.toISO() }}", "type": "string" },
+            { "id": "ctx14", "name": "prompt", "value": "Classify this synthetic CostPilot product action as budget, provider, usage, or alert: A workflow run consumed Gemini tokens and needs cost attribution.", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000002",
+      "name": "Set Product Test Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst accountId = String(input.account_id || '').trim();\nconst workspaceId = String(input.workspace_id || '').trim();\nconst accountSlug = String(input.account_slug || '').trim();\n\nif (!accountId || !workspaceId) {\n  throw new Error('missing_account_context');\n}\n\nreturn [{\n  json: {\n    ...input,\n    account_id: accountId,\n    workspace_id: workspaceId,\n    account_slug: accountSlug,\n  },\n}];\n"
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000010",
+      "name": "Normalize Product Account Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.GEMINI_ENDPOINT + '?key=' + $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $('Normalize Product Account Context').first().json.prompt }] }], generationConfig: { temperature: 0, maxOutputTokens: 12 } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000003",
+      "name": "Call Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json || {};\nconst context = $('Normalize Product Account Context').first().json || {};\nconst usage = response.usageMetadata || {};\nconst startedAt = Date.parse(context.started_at || '');\nconst latencyMs = Number.isFinite(startedAt) ? Date.now() - startedAt : null;\nconst inputTokens = Number(usage.promptTokenCount ?? 0);\nconst outputTokens = Number(usage.candidatesTokenCount ?? 0);\nconst totalTokens = Number(usage.totalTokenCount ?? inputTokens + outputTokens);\n\nreturn [{\n  json: {\n    account_id: context.account_id,\n    workspace_id: context.workspace_id,\n    usage_event_id: `cp_usage_${context.workflow_id}_${context.execution_id}_${context.node_id}`,\n    account_slug: context.account_slug,\n    workflow_id: context.workflow_id,\n    workflow_name: context.workflow_name,\n    execution_id: context.execution_id,\n    node_id: context.node_id,\n    node_name: context.node_name,\n    provider: context.provider,\n    service_name: context.service_name,\n    model_name: context.model_name,\n    model: context.model_name,\n    input_tokens: inputTokens,\n    output_tokens: outputTokens,\n    total_tokens: totalTokens,\n    estimated_cost: 0,\n    latency_ms: latencyMs,\n    usage_at: new Date().toISOString(),\n    workflow: context.workflow_name,\n    n8n_execution_id: context.execution_id,\n    node: context.node_name,\n    environment: context.environment,\n    business_action: context.business_action,\n    litellm_request_id: null,\n    tags: ['costpilot', 'product-pql', 'gemini'],\n    completion_result: response.candidates?.[0]?.content?.parts?.[0]?.text ?? null,\n  },\n}];\n"
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000004",
+      "name": "Normalize Gemini Usage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1360, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.COSTPILOT_USAGE_INGEST_URL || 'http://host.docker.internal:3000/api/product/usage/ingest' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.COSTPILOT_USAGE_INGEST_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ usage_event_id: $json.usage_event_id, account_id: $json.account_id, workspace_id: $json.workspace_id, account_slug: $json.account_slug, provider: $json.provider, service_name: $json.service_name, model_name: $json.model_name, input_tokens: $json.input_tokens, output_tokens: $json.output_tokens, total_tokens: $json.total_tokens, estimated_cost: $json.estimated_cost, latency_ms: $json.latency_ms, usage_at: $json.usage_at, workflow: $json.workflow, workflow_id: $json.workflow_id, n8n_execution_id: $json.n8n_execution_id, node: $json.node, environment: $json.environment, business_action: $json.business_action, litellm_request_id: $json.litellm_request_id, tags: $json.tags }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000005",
+      "name": "Send Usage to CostPilot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json || {};\nconst usage = $('Normalize Gemini Usage').first().json || {};\nreturn [{\n  json: {\n    ingest_status: result.status,\n    usage_event_id: result.usage_event_id,\n    usage_record_id: result.usage_record_id,\n    provider_connection_id: result.provider_connection_id,\n    provider: result.provider,\n    total_tokens: result.total_tokens,\n    calculated_cost: result.calculated_cost,\n    source_usage: usage,\n  },\n}];\n"
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000006",
+      "name": "Inspect Ingestion Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL + '/rest/v1/account_activation_state?account_id=eq.' + $('Normalize Product Account Context').first().json.account_id + '&select=account_id,provider_connected,usage_synced,first_cost_data_received_at,activation_score,activated,activated_at,latest_activation_signal_at' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000007",
+      "name": "Check Product/Lifecycle State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lifecycleRows = $input.first().json;\nconst ingest = $('Inspect Ingestion Result').first().json || {};\nreturn [{\n  json: {\n    usage_ingest_status: ingest.ingest_status,\n    usage_event_id: ingest.usage_event_id,\n    total_tokens: ingest.total_tokens,\n    calculated_cost: ingest.calculated_cost,\n    activation: Array.isArray(lifecycleRows) ? lifecycleRows[0] ?? null : lifecycleRows,\n  },\n}];\n"
+      },
+      "id": "d8a63d8a-5e9c-47a2-a577-800000000008",
+      "name": "Inspect PQL/Activation Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2480, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Set Product Test Context", "type": "main", "index": 0 }]] },
+    "Product/PQL Test Input": { "main": [[{ "node": "Set Product Test Context", "type": "main", "index": 0 }]] },
+    "Set Product Test Context": { "main": [[{ "node": "Normalize Product Account Context", "type": "main", "index": 0 }]] },
+    "Normalize Product Account Context": { "main": [[{ "node": "Call Gemini API", "type": "main", "index": 0 }]] },
+    "Call Gemini API": { "main": [[{ "node": "Normalize Gemini Usage", "type": "main", "index": 0 }]] },
+    "Normalize Gemini Usage": { "main": [[{ "node": "Send Usage to CostPilot", "type": "main", "index": 0 }]] },
+    "Send Usage to CostPilot": { "main": [[{ "node": "Inspect Ingestion Result", "type": "main", "index": 0 }]] },
+    "Inspect Ingestion Result": { "main": [[{ "node": "Check Product/Lifecycle State", "type": "main", "index": 0 }]] },
+    "Check Product/Lifecycle State": { "main": [[{ "node": "Inspect PQL/Activation Result", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d8a63d8a-5e9c-47a2-a577-800000000009",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

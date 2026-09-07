@@ -1,0 +1,143 @@
+{
+  "id": "litellm-deepseek-usage-prototype",
+  "name": "Prototype - LiteLLM DeepSeek Usage Capture",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1f651d2-76a5-4bfe-ae88-ef6003c90001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n  const value = Math.floor(Math.random() * 16);\n  return (char === 'x' ? value : ((value & 0x3) | 0x8)).toString(16);\n});\nreturn [{ json: { usage_event_id: `cp_usage_${uuid}` } }];\n"
+      },
+      "id": "a1f651d2-76a5-4bfe-ae88-ef6003c90006",
+      "name": "Generate Usage Event ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a0", "name": "usage_event_id", "value": "={{ $('Generate Usage Event ID').first().json.usage_event_id }}", "type": "string" },
+            { "id": "a1", "name": "account_slug", "value": "my-workspace-8a192182", "type": "string" },
+            { "id": "a2", "name": "workflow", "value": "litellm-deepseek-usage-prototype", "type": "string" },
+            { "id": "a3", "name": "workflow_id", "value": "={{ $workflow.id || 'unsaved' }}", "type": "string" },
+            { "id": "a4", "name": "n8n_execution_id", "value": "={{ $execution.id || 'manual' }}", "type": "string" },
+            { "id": "a5", "name": "environment", "value": "local", "type": "string" },
+            { "id": "a6", "name": "business_action", "value": "prototype_usage_capture", "type": "string" },
+            { "id": "a7", "name": "node", "value": "HTTP Request: Call LiteLLM", "type": "string" },
+            { "id": "a8", "name": "tags_json", "value": "[\"costpilot\",\"prototype\",\"deepseek\",\"real-usage\"]", "type": "string" },
+            { "id": "a9", "name": "started_at", "value": "={{ $now.toISO() }}", "type": "string" },
+            { "id": "a10", "name": "prompt", "value": "Classify this synthetic support ticket as billing, technical, or general: My demo API usage increased unexpectedly.", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1f651d2-76a5-4bfe-ae88-ef6003c90002",
+      "name": "Set Prototype Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://litellm:4000/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.LITELLM_MASTER_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'costpilot-deepseek-chat', messages: [{ role: 'user', content: $('Set Prototype Metadata').first().json.prompt }], temperature: 0, max_tokens: 12, metadata: { usage_event_id: $('Set Prototype Metadata').first().json.usage_event_id, account_slug: $('Set Prototype Metadata').first().json.account_slug, workflow: $('Set Prototype Metadata').first().json.workflow, workflow_id: $('Set Prototype Metadata').first().json.workflow_id, n8n_execution_id: $('Set Prototype Metadata').first().json.n8n_execution_id, node: $('Set Prototype Metadata').first().json.node, environment: $('Set Prototype Metadata').first().json.environment, business_action: $('Set Prototype Metadata').first().json.business_action, tags: JSON.parse($('Set Prototype Metadata').first().json.tags_json) } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "a1f651d2-76a5-4bfe-ae88-ef6003c90003",
+      "name": "HTTP Request: Call LiteLLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json || {};\nconst context = $('Set Prototype Metadata').first().json || {};\nconst usage = response.usage || {};\nconst startedAt = Date.parse(context.started_at || '');\nconst latencyMs = Number.isFinite(startedAt) ? Date.now() - startedAt : null;\nconst promptTokens = Number(usage.prompt_tokens ?? 0);\nconst completionTokens = Number(usage.completion_tokens ?? 0);\nconst totalTokens = Number(usage.total_tokens ?? promptTokens + completionTokens);\nconst explicitCost = Number(response._hidden_params?.response_cost ?? response.usage?.cost ?? response.cost ?? Number.NaN);\nconst fallbackCost = ((promptTokens * 0.55) + (completionTokens * 1.1)) / 1000000;\nconst estimatedCost = Number.isFinite(explicitCost) ? explicitCost : fallbackCost;\n\nreturn [{\n  json: {\n    usage_event_id: context.usage_event_id,\n    account_slug: context.account_slug,\n    provider: 'deepseek',\n    service_name: 'litellm-chat-completions',\n    model_name: 'deepseek-chat',\n    input_tokens: promptTokens,\n    output_tokens: completionTokens,\n    total_tokens: totalTokens,\n    estimated_cost: Number.isFinite(estimatedCost) ? estimatedCost : 0,\n    latency_ms: latencyMs,\n    usage_at: new Date().toISOString(),\n    workflow: context.workflow,\n    workflow_id: context.workflow_id,\n    n8n_execution_id: context.n8n_execution_id,\n    node: context.node,\n    environment: context.environment,\n    business_action: context.business_action,\n    litellm_request_id: response.id ?? null,\n    tags: JSON.parse(context.tags_json || '[]'),\n    completion_result: response.choices?.[0]?.message?.content ?? null,\n  },\n}];\n"
+      },
+      "id": "a1f651d2-76a5-4bfe-ae88-ef6003c90004",
+      "name": "Normalize LiteLLM Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.COSTPILOT_USAGE_INGEST_URL || 'http://host.docker.internal:3000/api/product/usage/ingest' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.COSTPILOT_USAGE_INGEST_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ usage_event_id: $json.usage_event_id, account_slug: $json.account_slug, provider: $json.provider, service_name: $json.service_name, model_name: $json.model_name, input_tokens: $json.input_tokens, output_tokens: $json.output_tokens, total_tokens: $json.total_tokens, estimated_cost: $json.estimated_cost, latency_ms: $json.latency_ms, usage_at: $json.usage_at, workflow: $json.workflow, workflow_id: $json.workflow_id, n8n_execution_id: $json.n8n_execution_id, node: $json.node, environment: $json.environment, business_action: $json.business_action, litellm_request_id: $json.litellm_request_id, tags: $json.tags }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "a1f651d2-76a5-4bfe-ae88-ef6003c90007",
+      "name": "HTTP Request: Ingest CostPilot Usage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json || {};\nreturn [{\n  json: {\n    status: result.status,\n    usage_event_id: result.usage_event_id,\n    usage_record_id: result.usage_record_id,\n    provider_connection_id: result.provider_connection_id,\n    provider: result.provider,\n    total_tokens: result.total_tokens,\n    calculated_cost: result.calculated_cost,\n  },\n}];\n"
+      },
+      "id": "a1f651d2-76a5-4bfe-ae88-ef6003c90008",
+      "name": "Inspect CostPilot Ingestion Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1840, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Generate Usage Event ID", "type": "main", "index": 0 }]] },
+    "Generate Usage Event ID": { "main": [[{ "node": "Set Prototype Metadata", "type": "main", "index": 0 }]] },
+    "Set Prototype Metadata": { "main": [[{ "node": "HTTP Request: Call LiteLLM", "type": "main", "index": 0 }]] },
+    "HTTP Request: Call LiteLLM": { "main": [[{ "node": "Normalize LiteLLM Response", "type": "main", "index": 0 }]] },
+    "Normalize LiteLLM Response": { "main": [[{ "node": "HTTP Request: Ingest CostPilot Usage", "type": "main", "index": 0 }]] },
+    "HTTP Request: Ingest CostPilot Usage": { "main": [[{ "node": "Inspect CostPilot Ingestion Result", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a1f651d2-76a5-4bfe-ae88-ef6003c90009",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

@@ -1,0 +1,17 @@
+export {
+  ACQUISITION_CHANNELS,
+  ACQUISITION_SOURCE_CATALOG,
+  type AcquisitionChannel,
+  type AcquisitionEnvelope,
+  mapAcquisitionEnvelopeFromLead,
+  mapAttributedCustomerAcquisitionEnvelope,
+  mapCreatorAcquisitionEnvelope,
+  mapInboundAcquisitionEnvelope,
+  mapOutboundAcquisitionEnvelope,
+  mapPartnerAcquisitionEnvelope,
+  mapPlgAcquisitionEnvelope,
+  mapReferralAcquisitionEnvelope,
+  mapLeadAcquisitionEnvelope,
+  normalizeAcquisitionEnvelope,
+  resolveAcquisitionChannelFromSourceType,
+} from './acquisition-foundation.ts'

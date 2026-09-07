@@ -1,0 +1,22 @@
+{
+  "name": "pre-crm-engine",
+  "version": "0.1.0",
+  "description": "Pre-CRM Engine — RevOps lead ingestion, sanitization, and AI scoring.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "simulate": "node Automation/Webhooks/simulate_webhook.cjs",
+    "scrape": "node dist/Acquisition/Signal_Outbound/Scraper/index.js",
+    "mx:start": "node dist/Automation/Local_Services/MX_Service/mx-service.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "playwright": "^1.62.1",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0"
+  }
+}

@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.34.5
+    container_name: revops_n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=development
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_SECURE_COOKIE=false
+      # Hosted CostPilot Demo Supabase project used by the workflow RPC nodes.
+      - SUPABASE_URL=${SUPABASE_URL:-https://uivrfaqghtgawgyesnap.supabase.co}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      # Stage 6 — Gemini AI scoring. Values are interpolated from the
+      # gitignored .env next to this compose file (never commit the key here).
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_ENDPOINT=${GEMINI_ENDPOINT}
+      # Isolated LiteLLM prototype authentication. The key remains in .env;
+      # the prototype workflow references it only through $env at runtime.
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      # Phase 3 — isolated AI usage telemetry ingestion into CostPilot.
+      - COSTPILOT_USAGE_INGEST_KEY=${COSTPILOT_USAGE_INGEST_KEY}
+      - COSTPILOT_USAGE_INGEST_URL=${COSTPILOT_USAGE_INGEST_URL:-http://host.docker.internal:3000/api/product/usage/ingest}
+      # Phase 7 — scoped manual RevOps signal execution. Set to one synthetic
+      # account ID in .env before running the inactive orchestration workflow.
+      - HOOKDECK_API_KEY=${HOOKDECK_API_KEY}
+      - HOOKDECK_SOURCE_URL=${HOOKDECK_SOURCE_URL}
+      - HOOKDECK_SIGNING_SECRET=${HOOKDECK_SIGNING_SECRET}
+      # Stage 2 — email verification (Emailable). Same interpolation pattern.
+      - EMAIL_VERIFY_API_KEY=${EMAIL_VERIFY_API_KEY}
+      - EMAIL_VERIFY_BASE_URL=${EMAIL_VERIFY_BASE_URL}
+      # Stage 4 — company enrichment (Apollo).
+      - ENRICH_API_KEY=${ENRICH_API_KEY}
+      - ENRICH_BASE_URL=${ENRICH_BASE_URL}
+      # Module 4 — HubSpot deal creation + Slack alerts.
+      - HUBSPOT_ACCESS_TOKEN=${HUBSPOT_ACCESS_TOKEN}
+      - HUBSPOT_BASE_URL=${HUBSPOT_BASE_URL}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      # Module 4 follow-up — nurture emails via Brevo (env-gated).
+      - BREVO_API_KEY=${BREVO_API_KEY}
+      - BREVO_BASE_URL=${BREVO_BASE_URL}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL}
+      # Allow $env in node expressions (needed for ?key=$env.GEMINI_API_KEY).
+      # Local dev only — default (true) blocks it for security.
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+    # Allow n8n (inside Docker) to reach services on the host,
+    # e.g. local Supabase at http://host.docker.internal:54321
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  # v2 (M4): MX sidecar — n8n's Code-node sandbox can't use Node `dns`, so a
+  # tiny HTTP service does the MX lookup. Runs the compiled dist/mx-service.js
+  # (built by `npm run build`); n8n reaches it on the compose network as
+  # http://mx-service:9001/mx?domain=... It does outbound DNS only (no DB), so
+  # it needs no keys. Port also mapped to the host for debugging/curl.
+  mx-service:
+    image: node:20-alpine
+    container_name: revops_mx
+    restart: always
+    working_dir: /app
+    command: ["node", "dist/Automation/Local_Services/MX_Service/mx-service.js"]
+    environment:
+      - MX_SERVICE_PORT=9001
+    ports:
+      - "9001:9001"
+    volumes:
+      - ./dist:/app/dist
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:9001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Isolated local AI gateway prototype. It is reachable only by services on
+  # this Compose network, including revops_n8n, and has no database dependency.
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.90.2
+    container_name: costpilot_litellm
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml"]
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?Set LITELLM_MASTER_KEY in .env before starting LiteLLM}
+    volumes:
+      - ./Automation/LiteLLM/config.yaml:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  n8n_data:

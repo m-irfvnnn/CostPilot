@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * .6);
+  --radius-md: calc(var(--radius) * .8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #4355fe;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2ff;
+  --secondary-foreground: #4355fe;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #96efef;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #5572f9;
+  --radius: .75rem;
+}
+
+* { @apply border-border; }
+html { scroll-behavior: smooth; }
+body { @apply bg-background text-foreground; }
+.font-heading { font-family: var(--font-heading); }
+.font-mono { font-family: var(--font-mono); }
+.page-shell { @apply mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12; }
+.section-border { @apply border-t border-slate-200; }
+.eyebrow { @apply flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[.18em] text-primary; }
+.section-title { @apply font-heading text-4xl font-bold leading-tight tracking-[-.04em] text-slate-950 sm:text-5xl; }
+.hero-gradient { background: linear-gradient(110deg, #4355fe 8%, #5572f9 48%, #4dcdd5 100%); background-clip: text; -webkit-background-clip: text; color: transparent; }
+.button-primary { @apply inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 font-mono text-xs font-bold text-primary-foreground shadow-[0_10px_24px_-12px_rgba(67,85,254,.8)] transition-all hover:-translate-y-0.5 hover:bg-[#3547ee]; }
+.button-secondary { @apply inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 font-mono text-xs font-bold text-slate-700 transition-colors hover:border-primary hover:text-primary; }
+.button-light { @apply inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 font-mono text-xs font-bold text-primary transition-transform hover:-translate-y-0.5; }
+.demo-label { @apply rounded-md border border-[#96EFEF] bg-[#96EFEF]/25 px-2 py-1 font-mono text-[9px] font-bold tracking-[.14em] text-primary; }
+.value-card, .use-case, .pricing-card { @apply rounded-xl border border-slate-200 bg-background p-6 transition-shadow hover:shadow-[0_16px_45px_-30px_rgba(15,23,42,.4)]; }
+.value-card { @apply min-h-64; }
+.use-case { @apply min-h-56 bg-white; }
+.pricing-card { @apply bg-white p-7; }
+.pricing-featured { @apply border-primary shadow-[0_18px_55px_-35px_rgba(67,85,254,.8)] ring-1 ring-primary; }
+@media (max-width: 640px) { .page-shell { @apply px-5; } }
+
+@layer base {
+  * { @apply outline-ring/50; }
+  ::selection { background: #96efef; color: #0f172a; }
+}
