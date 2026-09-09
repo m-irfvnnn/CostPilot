@@ -134,6 +134,8 @@ Create `Product/Web_App/.env.local` from `Product/Web_App/.env.example` and use 
 
 ## Deployment
 
+Live Demo: [costpilot-iota.vercel.app](https://costpilot-iota.vercel.app)
+
 Vercel deployment target:
 
 - framework: Next.js
@@ -150,6 +152,12 @@ Required Vercel environment groups:
 - PayU TEST merchant key, salt, env, and base URL
 
 Keep PayU in `test` mode for the public portfolio deployment.
+
+The public Vercel app provides the customer-facing product, Firebase Auth,
+hosted Supabase access, and the synthetic `/demo` preview. The full local
+automation stack remains local-only: n8n, LiteLLM, MX, Pre-CRM, Product/PQL
+automation, and RevOps orchestration are not deployed to Vercel. Use the
+local Docker/Loom walkthrough for those flows.
 
 ## Demo references
 
