@@ -39,12 +39,6 @@ const steps = [
     description: 'This helps us tailor your starting dashboard.',
   },
   {
-    title: 'Plan interest',
-    options: ['starter', 'growth', 'scale', 'not_sure'],
-    multi: false,
-    description: 'Which plan are you most interested in right now?',
-  },
-  {
     title: 'Primary use case',
     options: ['AI agents', 'n8n workflows', 'Support automation', 'Sales automation', 'Product analytics', 'Other'],
     multi: false,
@@ -136,8 +130,8 @@ export default function Onboarding() {
           company_size: selected[2][0],
           providers: selected[3],
           estimated_monthly_spend: selected[4][0],
-          plan_interest: selected[5][0],
-          primary_use_case: selected[6][0],
+          plan_interest: 'not_sure',
+          primary_use_case: selected[5][0],
         }),
       })
 
@@ -149,8 +143,8 @@ export default function Onboarding() {
         company_size: selected[2][0],
         provider_count: selected[3].length,
         estimated_monthly_spend: selected[4][0],
-        plan_interest: selected[5][0],
-        primary_use_case: selected[6][0],
+        plan_interest: 'not_sure',
+        primary_use_case: selected[5][0],
       })
       router.replace('/dashboard')
     } catch {
