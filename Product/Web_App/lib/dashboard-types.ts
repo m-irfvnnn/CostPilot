@@ -79,6 +79,7 @@ export type DashboardPayload = {
     provider: string
     connection_mode?: string
     connection_status: string
+    connected_at?: string | null
     last_synced_at: string | null
     external_reference?: string | null
   }>

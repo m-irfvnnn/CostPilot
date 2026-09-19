@@ -587,6 +587,7 @@ export function createDefaultProductIntelligenceService(deps: ProductIntelligenc
           provider: connection.provider,
           connection_mode: connection.connection_mode,
           connection_status: connection.connection_status,
+          connected_at: connection.connected_at,
           external_reference: connection.external_reference,
           last_synced_at: connection.last_synced_at,
         })),

@@ -1788,7 +1788,9 @@ function DashboardHeader({
 
 function KpiRow({ data, liveUsage }: { data: DashboardPayload | null; liveUsage?: LiveAiUsageRecord[] }) {
   const usage = compactLiveUsage(liveUsage)
-  const activeProvider = data?.connections.find((connection) => connection.connection_status === 'connected')?.provider
+  const activeProvider = [...(data?.connections ?? [])]
+    .filter((connection) => connection.connection_status === 'connected')
+    .sort((a, b) => new Date(b.connected_at ?? b.last_synced_at ?? 0).getTime() - new Date(a.connected_at ?? a.last_synced_at ?? 0).getTime())[0]?.provider
   const avgCost = usage.rows.length ? usage.cost / usage.rows.length : 0
 
   return (
@@ -1853,9 +1855,10 @@ function UsageBreakdown({ data, liveUsage }: { data: DashboardPayload | null; li
   const rows = liveUsage ?? []
   const totals = new Map<string, number>()
   for (const row of rows) totals.set(row.provider, (totals.get(row.provider) ?? 0) + row.usage_quantity)
-  const entries = [...totals.entries()]
-  const fallback = data?.provider_spend.map((row) => [row.provider, row.usage_record_count] as const) ?? []
-  const breakdown = entries.length ? entries : fallback
+  for (const connection of data?.connections ?? []) {
+    if (connection.connection_status === 'connected' && !totals.has(connection.provider)) totals.set(connection.provider, 0)
+  }
+  const breakdown = [...totals.entries()]
   const max = Math.max(...breakdown.map(([, value]) => Number(value)), 1)
 
   return (
