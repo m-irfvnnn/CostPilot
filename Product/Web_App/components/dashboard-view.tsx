@@ -1793,6 +1793,68 @@ function DashboardHeader({
   )
 }
 
+function ActivationActions({
+  data,
+  onGenerateInsight,
+  refreshingInsights,
+  onOpenBudget,
+}: {
+  data: DashboardPayload | null
+  onGenerateInsight?: (() => void | Promise<void>) | null
+  refreshingInsights: boolean
+  onOpenBudget: () => void
+}) {
+  const activation = data?.activation
+  const cards = [
+    {
+      title: 'Generate insight',
+      description: 'Refresh recommendations from your recorded provider usage.',
+      complete: activation?.insight_generated ?? false,
+      action: onGenerateInsight,
+      label: refreshingInsights ? 'Generating...' : 'Generate insight',
+      icon: Sparkles,
+    },
+    {
+      title: 'Create budget',
+      description: 'Set the monthly guardrail used for forecast and spend risk.',
+      complete: activation?.budget_created ?? false,
+      action: onOpenBudget,
+      label: 'Create budget',
+      icon: ShieldCheck,
+    },
+    {
+      title: 'Configure alert',
+      description: 'Choose a threshold so CostPilot can flag projected overages.',
+      complete: activation?.alert_configured ?? false,
+      action: onOpenBudget,
+      label: 'Configure alert',
+      icon: Bell,
+    },
+  ]
+
+  return (
+    <section className="grid gap-4 lg:grid-cols-3">
+      {cards.map((card) => {
+        const Icon = card.icon
+        return (
+          <article key={card.title} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_60px_-42px_rgba(15,23,42,.45)] sm:p-6">
+            <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-full bg-gradient-to-br from-[#96EFEF]/40 to-transparent" />
+            <div className="relative flex items-start justify-between gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary"><Icon size={18} /></span>
+              <StatusBadge label={card.complete ? 'complete' : 'next step'} />
+            </div>
+            <h2 className="relative mt-5 font-heading text-lg font-bold text-slate-950">{card.title}</h2>
+            <p className="relative mt-2 min-h-10 font-mono text-xs leading-5 text-slate-500">{card.description}</p>
+            <button type="button" onClick={() => void card.action?.()} disabled={card.title === 'Generate insight' && refreshingInsights} className="button-secondary relative mt-5 w-full justify-center disabled:opacity-60">
+              {card.label}
+            </button>
+          </article>
+        )
+      })}
+    </section>
+  )
+}
+
 function KpiRow({ data, liveUsage }: { data: DashboardPayload | null; liveUsage?: LiveAiUsageRecord[] }) {
   const usage = compactLiveUsage(liveUsage)
   const activeProvider = [...(data?.connections ?? [])]
@@ -2271,6 +2333,8 @@ type DashboardViewProps = {
   onRunIntegrationTest?: (() => void | Promise<void>) | null
   runningIntegrationTest?: boolean
   integrationTestResult?: string | null
+  onGenerateInsight?: (() => void | Promise<void>) | null
+  refreshingInsights?: boolean
 }
 
 export function DashboardView({
@@ -2319,6 +2383,8 @@ export function DashboardView({
   onRunIntegrationTest,
   runningIntegrationTest = false,
   integrationTestResult,
+  onGenerateInsight,
+  refreshingInsights = false,
 }: DashboardViewProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [internalActiveSection, setInternalActiveSection] = useState<DashboardSection>(activeSection)
@@ -2442,6 +2508,12 @@ export function DashboardView({
                 </div>
               ) : null}
               <KpiRow data={data} liveUsage={liveUsage} />
+              <ActivationActions
+                data={data}
+                onGenerateInsight={onGenerateInsight}
+                refreshingInsights={refreshingInsights}
+                onOpenBudget={() => document.getElementById('budget-guardrail')?.scrollIntoView({ behavior: 'smooth' })}
+              />
               <section className="grid gap-6 xl:grid-cols-[1.35fr_.85fr]">
                 <UsageTrend liveUsage={liveUsage} />
                 <UsageBreakdown data={data} liveUsage={liveUsage} />
@@ -2577,7 +2649,7 @@ export function DashboardView({
 
           <section className="mt-4 grid gap-4 xl:grid-cols-[1.65fr_1fr]">
             <SpendChart dailySpend={data?.daily_spend ?? []} />
-            <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+            <div id="budget-guardrail" className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="font-heading text-base font-bold text-slate-900">Spend by provider</h2>

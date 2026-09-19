@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [savingProviderLimit, setSavingProviderLimit] = useState(false)
   const [runningIntegrationTest, setRunningIntegrationTest] = useState(false)
   const [integrationTestResult, setIntegrationTestResult] = useState<string | null>(null)
+  const [refreshingInsights, setRefreshingInsights] = useState(false)
   const trackedViewed = useRef(false)
 
   const loadOverview = async (currentUser: User) => {
@@ -296,6 +297,28 @@ export default function DashboardPage() {
     }
   }
 
+  const generateInsight = async () => {
+    if (!user) return
+    setRefreshingInsights(true)
+    setError(null)
+    try {
+      const token = await user.getIdToken()
+      const response = await fetch('/api/product/insights', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error ?? 'product_insight_refresh_failed')
+      }
+      await loadOverview(user)
+    } catch (insightError) {
+      setError(insightError instanceof Error ? insightError.message : 'product_insight_refresh_failed')
+    } finally {
+      setRefreshingInsights(false)
+    }
+  }
+
   return (
     <DashboardView
       data={data}
@@ -333,6 +356,8 @@ export default function DashboardPage() {
       onRunIntegrationTest={runIntegrationTest}
       runningIntegrationTest={runningIntegrationTest}
       integrationTestResult={integrationTestResult}
+      onGenerateInsight={generateInsight}
+      refreshingInsights={refreshingInsights}
     />
   )
 }

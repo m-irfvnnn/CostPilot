@@ -1057,6 +1057,16 @@ export function createDefaultProductIntelligenceService(deps: ProductIntelligenc
       await runAccountHealth(context.account.id, 'product_signal_refresh')
       return { recommendation }
     },
+
+    async refreshProductInsights(authHeader: string | null) {
+      const context = await resolveAuthContext(authHeader)
+      const derived = await refreshDerivedSignals(context, 'api_sync')
+      await runAccountHealth(context.account.id, 'product_signal_refresh')
+      return {
+        ...derived,
+        activation: await getActivationState(context.account.id),
+      }
+    },
   }
 }
 
