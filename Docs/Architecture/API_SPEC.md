@@ -1393,6 +1393,8 @@ Current derived states:
 
 Current PQL behavior stays inside the existing qualification runtime. It now advances only when real Phase 6 product signals are present, rather than treating signup or dashboard views as product qualification.
 
+When a `PQL_REACHED` or `UPGRADE_INTENT` RevOps signal has a linked lead without an owner, the RevOps workflow calls `assign_pql_sales_owner`. The handoff reuses an existing assignment when present, otherwise assigns an active SDR with reason `pql_product_trigger`; it does not change the lead's original MQL/SQL state.
+
 ## 32.1 Sales Routing Contract
 
 Phase 5 extends the derived qualification contract into deterministic sales routing without replacing the existing scorer or CRM workflow ownership.
