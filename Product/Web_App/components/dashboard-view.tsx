@@ -54,6 +54,12 @@ export type DashboardSection = 'overview' | 'workflows' | 'usage' | 'providers' 
 
 const navItems: Array<{ id: DashboardSection; label: string; icon: LucideIcon }> = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'workflows', label: 'Workflows', icon: GitBranch },
+  { id: 'usage', label: 'Usage / Costs', icon: LineChart },
+  { id: 'providers', label: 'Providers', icon: PlugZap },
+  { id: 'budgets', label: 'Budgets', icon: Wallet },
+  { id: 'alerts', label: 'Alerts', icon: Bell },
+  { id: 'recommendations', label: 'Recommendations', icon: Sparkles },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
@@ -1653,7 +1659,8 @@ function RealBudgetsSection({
         )}
       </div>
       <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <h2 className="font-heading text-base font-bold text-slate-900">{hasBudget ? 'Update budget' : 'Create budget'}</h2>
+        <h2 className="font-heading text-base font-bold text-slate-900">{hasBudget ? 'Update budget and alert' : 'Create budget and configure alert'}</h2>
+        <p className="mt-2 font-mono text-xs leading-5 text-slate-500">Saving a threshold configures the alert and refreshes CostPilot insights from your recorded usage.</p>
         <div className="mt-5 grid gap-3">
           <label className="font-mono text-[11px] text-slate-500">Monthly budget<input value={budgetAmount} onChange={(event) => onBudgetAmountChange(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-primary" /></label>
           <label className="font-mono text-[11px] text-slate-500">Threshold percentage<input value={budgetThreshold} onChange={(event) => onBudgetThresholdChange(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-primary" /></label>
