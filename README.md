@@ -177,6 +177,7 @@ That means the repo now contains:
 - real AI usage telemetry through local gateway/provider integration tests
 - hosted Supabase product intelligence and lifecycle event ingestion
 - controlled RevOps signal orchestration through n8n, HubSpot, Slack, and Supabase feedback
+- PQL sales handoff: product-qualified signals check existing ownership and assign an active SDR only when the lead is unassigned
 - recruiter-facing portfolio framing without pretending synthetic data is real customer activity
 
 Current product scope:
